@@ -1,0 +1,67 @@
+{
+    "author": "jacobpoe@gmail.com",
+    "dependencies": {},
+    "keywords": [],
+    "name": "odu",
+    "pebble": {
+        "capabilities": [
+            ""
+        ],
+        "displayName": "ODU",
+        "enableMultiJS": true,
+        "messageKeys": [],
+        "projectType": "native",
+        "resources": {
+            "media": [
+                {
+                    "file": "images/Screenshot",
+                    "menuIcon": true,
+                    "name": "Screenshot",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ODU_Flame2",
+                    "name": "ODU_Flame2",
+                    "targetPlatforms": [
+                        "aplite",
+                        "basalt",
+                        "chalk"
+                    ],
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ODU_Flame1",
+                    "name": "ODU_Flame1",
+                    "targetPlatforms": [
+                        "aplite",
+                        "basalt",
+                        "chalk"
+                    ],
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/ODU_DPaw",
+                    "name": "ODU_DPaw",
+                    "targetPlatforms": [
+                        "aplite",
+                        "basalt",
+                        "chalk"
+                    ],
+                    "type": "bitmap"
+                }
+            ]
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "aplite",
+            "basalt",
+            "chalk"
+        ],
+        "uuid": "a9bad135-81d4-4190-9ecd-135bbbf52b39",
+        "watchapp": {
+            "watchface": true
+        }
+    },
+    "version": "1.0.0"
+}
