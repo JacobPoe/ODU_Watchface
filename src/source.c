@@ -2,10 +2,18 @@
 
 static Window *s_main_window;
 static TextLayer *s_time_layer;
+
 static GBitmap *s_background_bitmap;
 static BitmapLayer *s_background_layer;
+
 static int s_battery_level;
 static Layer *s_battery_layer;
+
+static TextLayer *s_weather_layer;
+static GFont s_weather_font;
+
+static BitmapLayer *s_bt_icon_layer;
+static GBitmap *s_bt_icon_bitmap;
 
 /* ------------ Time Functions ------------ */
 
@@ -26,6 +34,19 @@ static void update_time() {
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed)	{	
 	//Update time
 	update_time();
+	
+	//Get weather update every 15 minutes
+	if(tick_time->tm_min % 15 == 0)	{
+		//Begin dictionary
+		DictionaryIterator *iter;
+		app_message_outbox_begin(&iter);
+		
+		//Add key-value pair
+		dict_write_uint8(iter, 0,0);
+		
+		//Send message
+		app_message_outbox_send();
+	}
 }
 
 /* ------------ Battery Functions ------------ */
@@ -42,7 +63,7 @@ static void battery_update_proc(Layer *layer, GContext *ctx)	{
 	GRect bounds = layer_get_bounds(layer);
 	
 	//Find width
-	int width = (int)(float)(((float)s_battery_level / 100.0F) * 37.0F);
+	int width = (int)(float)(((float)s_battery_level / 100.0F) * 39.0F);
 	
 	//Draw background
 	graphics_context_set_fill_color(ctx, GColorBlack);
@@ -51,6 +72,18 @@ static void battery_update_proc(Layer *layer, GContext *ctx)	{
 	//Draw Bar
 	graphics_context_set_fill_color(ctx, GColorWhite);
 	graphics_fill_rect(ctx, GRect(0, 0, width, bounds.size.h), 0, GCornerNone);
+}
+
+/* ------------ Bluetooth Functions ------------ */
+
+static void bluetooth_callback(bool connected)	{
+	//Show icon if DC'd
+	layer_set_hidden(bitmap_layer_get_layer(s_bt_icon_layer), connected);
+	
+	if(!connected)	{
+		//Vibrate
+		vibes_double_pulse();
+	}
 }
 
 /* ------------ Window Functions ------------ */
@@ -68,7 +101,8 @@ static void main_window_load(Window *window) {
 	//Optimize layout
 	text_layer_set_background_color(s_time_layer, GColorClear);
 	text_layer_set_text_color(s_time_layer, GColorBlack);
-	text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM));
+	//text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM));
+	text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
 	
 	//Create layer as child to Window
@@ -88,9 +122,31 @@ static void main_window_load(Window *window) {
 	layer_add_child(window_layer, bitmap_layer_get_layer(s_background_layer));
 	
 	//Create battery meter layer
-	s_battery_layer = layer_create(GRect(52,160,37,4));//X, Y, Width, Height
+	s_battery_layer = layer_create(GRect(53,160,39,4));//X, Y, Width, Height
 	layer_set_update_proc(s_battery_layer, battery_update_proc);
 	layer_add_child(window_get_root_layer(window), s_battery_layer);
+	
+	//Create Weather layer
+	s_weather_layer = text_layer_create(
+		GRect(-48, PBL_IF_ROUND_ELSE(7,135), bounds.size.w, 55));
+	text_layer_set_background_color(s_weather_layer, GColorClear);
+	text_layer_set_text_color(s_weather_layer, GColorBlack);
+	text_layer_set_text_alignment(s_weather_layer, GTextAlignmentCenter);
+	text_layer_set_text(s_weather_layer, "[loading]");
+	s_weather_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
+	text_layer_set_font(s_weather_layer, s_weather_font);
+	layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_weather_layer));
+	
+	//Create BlueTooth Icon Gbitmap
+	s_bt_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BT_Icon);
+	
+	//Create BlueTooth Icon BitmapLayer
+	s_bt_icon_layer = bitmap_layer_create(GRect(110, 140, 20, 20));
+	bitmap_layer_set_bitmap(s_bt_icon_layer, s_bt_icon_bitmap);
+	layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(s_bt_icon_layer));
+	
+	//Display correct state of BT connection from Go
+	bluetooth_callback(connection_service_peek_pebble_app_connection());
 }
 
 static void main_window_unload(Window *window) {	
@@ -99,13 +155,56 @@ static void main_window_unload(Window *window) {
 	
 	//Destroy GBitmap
 	gbitmap_destroy(s_background_bitmap);
-	
-	//Destroy Bitmaplayer
 	bitmap_layer_destroy(s_background_layer);
 	
 	//Destroy Battery
 	layer_destroy(s_battery_layer);
+	
+	//Destroy Weather
+	text_layer_destroy(s_weather_layer);
+	
+	//Destroy BlueTooth
+	gbitmap_destroy(s_bt_icon_bitmap);
+	bitmap_layer_destroy(s_bt_icon_layer);
 }
+
+/* ------------ App Message ------------ */
+
+static void inbox_received_callback(DictionaryIterator *iterator, void *context)	{
+	//Store incoming info
+	static char temperature_buffer[8];
+	static char conditions_buffer[32];
+	static char weather_layer_buffer[32];
+	
+	//Read tuples for data
+	Tuple *temp_tuple = dict_find(iterator, MESSAGE_KEY_TEMPERATURE);
+	Tuple *conditions_tuple = dict_find(iterator, MESSAGE_KEY_CONDITIONS);
+	
+	//If all data is available, use it
+	if(temp_tuple && conditions_tuple)	{
+		snprintf(temperature_buffer, sizeof(temperature_buffer), "%dF", (int)temp_tuple -> value -> int32);
+		snprintf(conditions_buffer, sizeof(conditions_buffer), "%s", conditions_tuple -> value -> cstring);
+		
+		//Assemble and display full string
+		snprintf(weather_layer_buffer, sizeof(weather_layer_buffer), "%s\n%s", temperature_buffer, conditions_buffer);
+		text_layer_set_text(s_weather_layer, weather_layer_buffer);
+	}
+}
+
+static void inbox_dropped_callback(AppMessageResult reason, void *context)	{
+	APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped");
+}
+
+static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context)	{
+	APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed");
+}
+
+static void outbox_sent_callback(DictionaryIterator *iterator, void *context)	{
+	APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send succeeded");
+}
+
+
+/* ------------ Init / Deinit ------------ */
 
 static void init()	{
 	//Create window & assign to pointer
@@ -134,12 +233,29 @@ static void init()	{
 	
 	//Display battery from Go
 	battery_callback(battery_state_service_peek());
+	
+	//Register for BT Connection service
+	connection_service_subscribe((ConnectionHandlers)	{
+		.pebble_app_connection_handler = bluetooth_callback
+	});
+	
+	//Register callbacks
+	app_message_register_inbox_received(inbox_received_callback);
+		//Open AppMessage
+		const int inbox_size = 64;
+		const int outbox_size = 64;
+		app_message_open(inbox_size, outbox_size);
+	app_message_register_inbox_dropped(inbox_dropped_callback);
+	app_message_register_outbox_failed(outbox_failed_callback);
+	app_message_register_outbox_sent(outbox_sent_callback);
 }
 
 static void deinit()	{
 	//Destroy window
 	window_destroy(s_main_window);
 }
+
+/* ------------ Main Method ------------ */
 
 int main(void)	{
 	init();

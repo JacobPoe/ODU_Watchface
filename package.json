@@ -1,18 +1,29 @@
 {
     "author": "jacobpoe@gmail.com",
-    "dependencies": {},
+    "dependencies": {
+        "pebble-clay": "^1.0.2"
+    },
     "keywords": [],
     "name": "odu",
     "pebble": {
         "capabilities": [
-            ""
+            "location"
         ],
         "displayName": "ODU",
         "enableMultiJS": true,
-        "messageKeys": [],
+        "messageKeys": [
+            "TEMPERATURE",
+            "CONDITIONS"
+        ],
         "projectType": "native",
         "resources": {
             "media": [
+                {
+                    "file": "images/BT_Icon",
+                    "name": "BT_Icon",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
                 {
                     "file": "images/Screenshot",
                     "menuIcon": true,
@@ -58,7 +69,7 @@
             "basalt",
             "chalk"
         ],
-        "uuid": "a9bad135-81d4-4190-9ecd-135bbbf52b39",
+        "uuid": "778dfd18-e57a-4d82-8fdd-27ce9fb5b19b",
         "watchapp": {
             "watchface": true
         }
