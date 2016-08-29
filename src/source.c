@@ -1,6 +1,7 @@
 #include <pebble.h>
 
 static Window *s_main_window;
+
 static TextLayer *s_time_layer;
 
 static GBitmap *s_background_bitmap;
@@ -11,6 +12,9 @@ static Layer *s_battery_layer;
 
 static TextLayer *s_weather_layer;
 static GFont s_weather_font;
+
+static TextLayer *s_date_layer;
+static GFont s_date_font;
 
 static BitmapLayer *s_bt_icon_layer;
 static GBitmap *s_bt_icon_bitmap;
@@ -23,12 +27,16 @@ static void update_time() {
   struct tm *tick_time = localtime(&temp);
 
   // Write the current hours and minutes into a buffer
-  static char s_buffer[8];
-  strftime(s_buffer, sizeof(s_buffer), 
+  static char time_buffer[8];
+  strftime(time_buffer, sizeof(time_buffer), 
 					 clock_is_24h_style() ? "%H:%M" : "%I:%M", tick_time);
-
-  // Display time
-  text_layer_set_text(s_time_layer, s_buffer);
+	 text_layer_set_text(s_time_layer, time_buffer);
+	
+	// Write current date into a buffer
+	static char date_buffer[24];
+	strftime(date_buffer, sizeof(date_buffer),
+					"%b %e,\n%Y", tick_time);
+	text_layer_set_text(s_date_layer, date_buffer);
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed)	{	
@@ -101,21 +109,14 @@ static void main_window_load(Window *window) {
 	//Optimize layout
 	text_layer_set_background_color(s_time_layer, GColorClear);
 	text_layer_set_text_color(s_time_layer, GColorBlack);
-	//text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM));
 	text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
-	
-	//Create layer as child to Window
 	layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
 		
 	//Create GBitmap Layer
 	s_background_layer = bitmap_layer_create(
 		GRect(0, PBL_IF_ROUND_ELSE(58,-5), bounds.size.w, 150));
-	
-	//Create GBitmap
 	s_background_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ODU_Flame2);
-	
-	//Display GBitmap image
 	bitmap_layer_set_bitmap(s_background_layer, s_background_bitmap);
 	bitmap_layer_set_compositing_mode(s_background_layer, GCompOpSet);
 	bitmap_layer_set_alignment(s_background_layer, GAlignCenter);
@@ -132,10 +133,20 @@ static void main_window_load(Window *window) {
 	text_layer_set_background_color(s_weather_layer, GColorClear);
 	text_layer_set_text_color(s_weather_layer, GColorBlack);
 	text_layer_set_text_alignment(s_weather_layer, GTextAlignmentCenter);
-	text_layer_set_text(s_weather_layer, "[loading]");
+	text_layer_set_text(s_weather_layer, "Retrieving\nweather");
 	s_weather_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
 	text_layer_set_font(s_weather_layer, s_weather_font);
 	layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_weather_layer));
+	
+	//Create Date layer
+	s_date_layer = text_layer_create(
+		GRect(48, PBL_IF_ROUND_ELSE(7,135), bounds.size.w, 55));
+	text_layer_set_background_color(s_date_layer, GColorClear);
+	text_layer_set_text_color(s_date_layer, GColorBlack);
+	text_layer_set_text_alignment(s_date_layer, GTextAlignmentCenter);
+	s_date_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
+	text_layer_set_font(s_date_layer, s_date_font);
+	layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_date_layer));
 	
 	//Create BlueTooth Icon Gbitmap
 	s_bt_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BT_Icon);
@@ -162,6 +173,9 @@ static void main_window_unload(Window *window) {
 	
 	//Destroy Weather
 	text_layer_destroy(s_weather_layer);
+	
+	//Destroy Date
+	text_layer_destroy(s_date_layer);
 	
 	//Destroy BlueTooth
 	gbitmap_destroy(s_bt_icon_bitmap);
