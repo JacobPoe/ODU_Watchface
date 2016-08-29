@@ -1,6 +1,8 @@
 {
     "author": "jacobpoe@gmail.com",
-    "dependencies": {},
+    "dependencies": {
+        "pebble-clay": "^1.0.2"
+    },
     "keywords": [],
     "name": "odu",
     "pebble": {
@@ -13,6 +15,12 @@
         "projectType": "native",
         "resources": {
             "media": [
+                {
+                    "file": "images/BT_Icon",
+                    "name": "BT_Icon",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
                 {
                     "file": "images/Screenshot",
                     "menuIcon": true,

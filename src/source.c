@@ -2,10 +2,15 @@
 
 static Window *s_main_window;
 static TextLayer *s_time_layer;
+
 static GBitmap *s_background_bitmap;
 static BitmapLayer *s_background_layer;
+
 static int s_battery_level;
 static Layer *s_battery_layer;
+
+static BitmapLayer *s_bt_background_layer, *s_bt_icon_layer;
+static GBitmap *s_bt_background_bitmap, *s_bt_icon_bitmap;
 
 /* ------------ Time Functions ------------ */
 
@@ -53,6 +58,18 @@ static void battery_update_proc(Layer *layer, GContext *ctx)	{
 	graphics_fill_rect(ctx, GRect(0, 0, width, bounds.size.h), 0, GCornerNone);
 }
 
+/* ------------ Bluetooth Functions ------------ */
+
+static void bluetooth_callback(bool connected)	{
+	//Show icon if DC'd
+	layer_set_hidden(bitmap_layer_get_layer(s_bt_icon_layer), connected);
+	
+	if(!connected)	{
+		//Vibrate
+		vibes_double_pulse();
+	}
+}
+
 /* ------------ Window Functions ------------ */
 
 static void main_window_load(Window *window) {
@@ -91,6 +108,17 @@ static void main_window_load(Window *window) {
 	s_battery_layer = layer_create(GRect(52,160,37,4));//X, Y, Width, Height
 	layer_set_update_proc(s_battery_layer, battery_update_proc);
 	layer_add_child(window_get_root_layer(window), s_battery_layer);
+	
+	//Create BlueTooth Icon Gbitmap
+	s_bt_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BT_Icon);
+	
+	//Create BlueTooth Icon BitmapLayer
+	s_bt_icon_layer = bitmap_layer_create(GRect(114, 137, 20, 20));
+	bitmap_layer_set_bitmap(s_bt_icon_layer, s_bt_icon_bitmap);
+	layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(s_bt_icon_layer));
+	
+	//Display correct state of BT connection from Go
+	bluetooth_callback(connection_service_peek_pebble_app_connection());
 }
 
 static void main_window_unload(Window *window) {	
@@ -99,13 +127,17 @@ static void main_window_unload(Window *window) {
 	
 	//Destroy GBitmap
 	gbitmap_destroy(s_background_bitmap);
-	
-	//Destroy Bitmaplayer
 	bitmap_layer_destroy(s_background_layer);
 	
 	//Destroy Battery
 	layer_destroy(s_battery_layer);
+	
+	//Destroy BlueTooth
+	gbitmap_destroy(s_bt_icon_bitmap);
+	bitmap_layer_destroy(s_bt_icon_layer);
 }
+
+/* ------------ Init / Deinit ------------ */
 
 static void init()	{
 	//Create window & assign to pointer
@@ -134,12 +166,19 @@ static void init()	{
 	
 	//Display battery from Go
 	battery_callback(battery_state_service_peek());
+	
+	//Register for BT Connection service
+	connection_service_subscribe((ConnectionHandlers)	{
+		.pebble_app_connection_handler = bluetooth_callback
+	});
 }
 
 static void deinit()	{
 	//Destroy window
 	window_destroy(s_main_window);
 }
+
+/* ------------ Main Method ------------ */
 
 int main(void)	{
 	init();
