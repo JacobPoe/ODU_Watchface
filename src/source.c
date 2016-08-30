@@ -187,9 +187,9 @@ static void main_window_unload(Window *window) {
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context)	{
 	//Store incoming info
-	static char temperature_buffer[8];
-	static char conditions_buffer[32];
-	static char weather_layer_buffer[32];
+	static char temperature_buffer[5];
+	static char conditions_buffer[13];
+	static char weather_layer_buffer[19];
 	
 	//Read tuples for data
 	Tuple *temp_tuple = dict_find(iterator, MESSAGE_KEY_TEMPERATURE);
