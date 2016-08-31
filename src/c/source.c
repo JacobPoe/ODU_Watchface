@@ -1,5 +1,8 @@
 #include <pebble.h>
 
+#define KEY_TEMPERATURE 0
+#define KEY_CONDITIONS 1
+
 static Window *s_main_window;
 
 static TextLayer *s_time_layer;
@@ -7,8 +10,8 @@ static TextLayer *s_time_layer;
 static GBitmap *s_background_bitmap;
 static BitmapLayer *s_background_layer;
 
-static int s_battery_level;
 static Layer *s_battery_layer;
+static int s_battery_level;
 
 static TextLayer *s_weather_layer;
 static GFont s_weather_font;
@@ -20,7 +23,6 @@ static BitmapLayer *s_bt_icon_layer;
 static GBitmap *s_bt_icon_bitmap;
 
 /* ------------ Time Functions ------------ */
-
 static void update_time() {
   // Get a tm structure
   time_t temp = time(NULL);
@@ -58,7 +60,6 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed)	{
 }
 
 /* ------------ Battery Functions ------------ */
-
 static void battery_callback(BatteryChargeState state)	{
 	//Record battery level
 	s_battery_level = state.charge_percent;
@@ -83,7 +84,6 @@ static void battery_update_proc(Layer *layer, GContext *ctx)	{
 }
 
 /* ------------ Bluetooth Functions ------------ */
-
 static void bluetooth_callback(bool connected)	{
 	//Show icon if DC'd
 	layer_set_hidden(bitmap_layer_get_layer(s_bt_icon_layer), connected);
@@ -95,7 +95,6 @@ static void bluetooth_callback(bool connected)	{
 }
 
 /* ------------ Window Functions ------------ */
-
 static void main_window_load(Window *window) {
 	
 	//Get Window info
@@ -184,7 +183,6 @@ static void main_window_unload(Window *window) {
 }
 
 /* ------------ App Message ------------ */
-
 static void inbox_received_callback(DictionaryIterator *iterator, void *context)	{
 	//Store incoming info
 	static char temperature_buffer[5];
@@ -220,7 +218,6 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context)	{
 
 
 /* ------------ Init / Deinit ------------ */
-
 static void init()	{
 	//Create window & assign to pointer
 	s_main_window = window_create();
@@ -271,7 +268,6 @@ static void deinit()	{
 }
 
 /* ------------ Main Method ------------ */
-
 int main(void)	{
 	init();
 	app_event_loop();

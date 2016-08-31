@@ -12,8 +12,8 @@
         "displayName": "ODU",
         "enableMultiJS": true,
         "messageKeys": [
-            "TEMPERATURE",
-            "CONDITIONS"
+            "KEY_TEMPERATURE",
+            "KEY_CONDITIONS"
         ],
         "projectType": "native",
         "resources": {
